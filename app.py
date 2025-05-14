@@ -43,7 +43,6 @@ def upload_gps():
 
     filtered_points = filter_by_distance(gps_points, MIN_MOVE_DISTANCE_M)
     snapped_path = snap_to_nearest_road_filtered(filtered_points, MAX_SNAP_DISTANCE_M)
-    print(snapped_path)
     total_distance, route_coords = get_road_distance(snapped_path)
 
     shops = [
