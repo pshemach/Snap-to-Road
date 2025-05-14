@@ -63,4 +63,4 @@ def upload_gps():
     })
 
 if __name__ == '__main__':
-    app.run(port=7097,debug=True)
+    app.run(host='0.0.0.0', port=7097)
