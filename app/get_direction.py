@@ -4,7 +4,7 @@ import os
 import time
 import polyline
 
-API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY')
+API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyACpYMHnmkd8DWxWS3KTJ70EeKIRYN2xHM')
 
 def get_road_distance(points):
     total_km = 0

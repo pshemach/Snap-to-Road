@@ -3,7 +3,7 @@ from geopy.distance import geodesic
 import os
 import time
 
-API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY')
+API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyACpYMHnmkd8DWxWS3KTJ70EeKIRYN2xHM')
 
 # Snap to Roads (max 100 per batch)
 def snap_to_nearest_road_filtered(points, max_snap_distance_m=15):
