@@ -12,10 +12,8 @@ def merge_close_visits(visits, gap_threshold_min=5):
     merged = [visits[0]]
     for visit in visits[1:]:
         last = merged[-1]
-        # Same shop and within time threshold
         if (visit['shop'] == last['shop'] and
             (visit['check_in'] - last['check_out']).total_seconds() / 60 <= gap_threshold_min):
-            # Extend current visit
             last['check_out'] = visit['check_out']
             last['duration_min'] = round((last['check_out'] - last['check_in']).total_seconds() / 60, 2)
         else:
@@ -61,38 +59,11 @@ def create_route_map(time_points, snapped_path, visits, route_coords=None, outpu
     m.save(output_path)
 
     animation_js = """
-<style>
-#infoBox, #controls {
-    position: absolute;
-    z-index: 1000;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    font-size: 16px;
-    padding: 10px 15px;
-}
-#infoBox {
-    top: 20px;
-    right: 20px;
-    border: 1px solid #ccc;
-}
-#controls {
-    bottom: 20px;
-    left: 20px;
-    border: 1px solid #999;
-    width: 300px;
-}
-#progressBar {
-    width: 100%%;
-    margin-top: 10px;
-}
-</style>
-<div id='infoBox'>Status: <span id='statusText'>Loading...</span></div>
-<div id='controls'>
+<div id='controls' style="position:absolute; bottom:20px; left:20px; background:white; padding:10px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.2); z-index:1000">
   <button onclick="play()">▶️ Play</button>
   <button onclick="pause()">⏸ Pause</button>
   <label>Speed: <input type="range" min="0.5" max="3" value="1" step="0.1" id="speedSlider"></label>
-  <input id="progressBar" type="range" min="0" max="%d" value="0">
+  <input id="progressBar" type="range" min="0" max="%d" value="0" style="width:100%%;">
 </div>
 <script>
 const route = %s;
@@ -101,32 +72,31 @@ let i = 0;
 let marker = null;
 let playing = true;
 let speed = 1;
-const statusBox = document.getElementById('statusText');
-document.getElementById('speedSlider').oninput = e => speed = parseFloat(e.target.value);
 const progressBar = document.getElementById('progressBar');
+document.getElementById('speedSlider').oninput = e => speed = parseFloat(e.target.value);
 progressBar.oninput = e => { i = parseInt(e.target.value); updateCar(map); };
 function play() { playing = true; moveCar(map); }
 function pause() { playing = false; }
-
 function isWaitingHere(lat, lng) {
-  for (const v of visits) {
+  for (let j = 0; j < visits.length; j++) {
+    const v = visits[j];
     const dist = Math.sqrt((v.lat - lat)**2 + (v.lng - lng)**2);
-    if (dist < 0.0005) return v;
+    if (dist < 0.0005) return { stop: v, index: j };
   }
   return null;
 }
-
 function updateCar(map) {
   const [lat, lng] = route[i];
-  const stop = isWaitingHere(lat, lng);
+  const res = isWaitingHere(lat, lng);
+  const stop = res ? res.stop : null;
+  const index = res ? res.index : null;
   const status = stop ? `Waiting at ${stop.shop}: ${stop.duration_min} min` : 'Moving...';
-  statusBox.innerText = status;
+  parent.postMessage({ statusText: status, highlightIndex: index }, '*');
   if (!marker) {
     marker = L.marker([lat, lng], {
       icon: L.icon({
         iconUrl: 'https://cdn-icons-png.flaticon.com/512/870/870130.png',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        iconSize: [32, 32], iconAnchor: [16, 16]
       })
     }).addTo(map);
   } else {
@@ -136,18 +106,17 @@ function updateCar(map) {
   else marker.closePopup();
   progressBar.value = i;
 }
-
 function moveCar(map) {
   if (i >= route.length || !playing) return;
   updateCar(map);
   const [lat, lng] = route[i];
-  const stop = isWaitingHere(lat, lng);
-  const stepTime = 60000 / route.length; // 1 min for whole journey
+  const res = isWaitingHere(lat, lng);
+  const stop = res ? res.stop : null;
+  const stepTime = 60000 / route.length;
   const pauseMs = stop ? stop.duration_min * 1000 : stepTime / speed;
   i++;
   setTimeout(() => moveCar(map), pauseMs);
 }
-
 window.onload = function() {
   map = Object.values(window).find(v => v instanceof L.Map);
   setTimeout(() => moveCar(map), 1000);
@@ -161,12 +130,13 @@ window.onload = function() {
             'shop': v['shop'],
             'lat': v['location'][0],
             'lng': v['location'][1],
-            'duration_min': v['duration_min']
-        }
-        for v in visits
+            'duration_min': v['duration_min'],
+            'check_in': v['check_in'].strftime('%H:%M'),
+            'check_out': v['check_out'].strftime('%H:%M')
+        } for v in visits
     ]
 
     with open(output_path, 'a', encoding='utf-8') as f:
-        f.write(animation_js % (len(timed_route) - 1, timed_route, visit_points))
+        f.write(animation_js % (len(timed_route)-1, timed_route, visit_points))
 
     return output_path

@@ -46,8 +46,8 @@ def upload_gps():
     total_distance, route_coords = get_road_distance(snapped_path)
 
     shops = [
-        {"name": "Shop A", "location": (6.13852, 80.10066), "radius": 35},
-        {"name": "Shop B", "location": (6.70941, 79.90764), "radius": 35},
+        {"name": "Hikkaduwa FC", "location": (6.14264, 80.10011), "radius": 35},
+        {"name": "Panadura FC", "location": (6.70941, 79.90764), "radius": 35},
     ]
 
     visits = detect_shop_visits(time_points, shops)

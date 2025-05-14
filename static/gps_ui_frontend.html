@@ -3,136 +3,303 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GPS Route Analysis</title>
+    <title>Rep Route Visualizer</title>
     <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f9f9f9;
+      :root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --accent-color: #e74c3c;
+        --bg-color: #f5f7fa;
+        --card-bg: #ffffff;
+        --text-color: #333;
+        --border-color: #e0e0e0;
+      }
+
+      * {
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
       }
-      .container {
-        max-width: 900px;
-        margin: 40px auto;
-        background-color: #fff;
-        border-radius: 10px;
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-color);
+        display: flex;
+        height: 100vh;
+        color: var(--text-color);
+        line-height: 1.6;
+      }
+
+      #mapContainer {
+        flex: 3;
+        padding: 20px;
+        background: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      #infoPanel {
+        flex: 2;
         padding: 30px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-      h1 {
-        text-align: center;
-        margin-bottom: 25px;
-        color: #333;
-      }
-      form {
+        background: var(--card-bg);
+        border-left: 1px solid var(--border-color);
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 15px;
+        gap: 20px;
       }
-      input[type="file"] {
-        padding: 8px;
-        font-size: 16px;
+
+      h2 {
+        font-size: 1.8rem;
+        color: var(--primary-color);
+        text-align: center;
+        margin-bottom: 20px;
       }
+
+      h3 {
+        font-size: 1.3rem;
+        color: var(--primary-color);
+        margin-bottom: 15px;
+      }
+
+      select,
       button {
-        background-color: #007bff;
-        color: #fff;
-        border: none;
-        padding: 10px 20px;
-        font-size: 16px;
-        border-radius: 5px;
+        padding: 12px;
+        font-size: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--card-bg);
+        transition: all 0.2s ease;
         cursor: pointer;
-        transition: background-color 0.3s;
       }
+
+      select {
+        width: 100%;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0Проспать 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1em;
+      }
+
+      select:focus,
+      button:focus {
+        outline: none;
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+      }
+
+      button {
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+      }
+
       button:hover {
-        background-color: #0056b3;
+        background: #2980b9;
+        transform: translateY(-1px);
       }
-      #response,
-      #visits {
-        margin-top: 30px;
-        padding: 20px;
-        background-color: #f1f1f1;
-        border-radius: 8px;
+
+      button:active {
+        transform: translateY(0);
       }
+
       table {
         width: 100%;
-        border-collapse: collapse;
-        margin-top: 15px;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: var(--card-bg);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       }
+
       th,
       td {
-        border: 1px solid #ccc;
-        padding: 10px;
+        padding: 12px 15px;
         text-align: left;
+        border-bottom: 1px solid var(--border-color);
       }
+
       th {
-        background-color: #f0f0f0;
+        background: var(--primary-color);
+        color: white;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.9rem;
       }
-      a {
-        color: #007bff;
-        text-decoration: none;
+
+      tr:last-child td {
+        border-bottom: none;
       }
-      a:hover {
-        text-decoration: underline;
+
+      tr:hover {
+        background: #f8f9fa;
+      }
+
+      tr.highlight {
+        background: #fff3e0 !important;
+        transition: background 0.3s ease;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      #statusText,
+      #totalDistance {
+        font-size: 1rem;
+        font-weight: 500;
+        text-align: center;
+        color: var(--primary-color);
+        padding: 15px;
+        background: rgba(52, 152, 219, 0.1);
+        border-radius: 6px;
+        margin-top: 10px;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          flex-direction: column;
+        }
+
+        #mapContainer,
+        #infoPanel {
+          flex: none;
+          width: 100%;
+          height: 50vh;
+          padding: 15px;
+        }
+
+        #infoPanel {
+          border-left: none;
+          border-top: 1px solid var(--border-color);
+        }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h1>GPS Route Analyzer</h1>
-      <form id="uploadForm">
-        <input type="file" name="file" id="file" required accept=".csv,.xlsx" />
-        <button type="submit">Upload and Analyze</button>
+    <div id="mapContainer">
+      <iframe id="mapFrame" src="" style="display: none"></iframe>
+    </div>
+
+    <div id="infoPanel">
+      <h2>Rep Route Analysis</h2>
+      <form id="repForm">
+        <select id="repSelect" name="rep_id">
+          <option value="">-- Select Rep ID --</option>
+        </select>
+        <button type="submit">Analyze</button>
       </form>
 
-      <div id="response"></div>
-      <div id="visits"></div>
+      <h3>Shop Visits</h3>
+      <table id="visitTable">
+        <thead>
+          <tr>
+            <th>Shop</th>
+            <th>Check-In</th>
+            <th>Check-Out</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div id="totalDistance">Total Distance: N/A</div>
+      <div id="statusText">Waiting for selection...</div>
     </div>
 
     <script>
+      // Load Rep IDs and Names
+      fetch("/rep-ids")
+        .then((res) => res.json())
+        .then((data) => {
+          const select = document.getElementById("repSelect");
+          data.rep_ids.forEach((rep) => {
+            const opt = document.createElement("option");
+            opt.value = rep.id;
+            opt.textContent = rep.name; // Show rep name
+            select.appendChild(opt);
+          });
+        });
+
+      // Function to update table highlight
+      function updateTableHighlight(highlightIndex) {
+        const rows = document.querySelectorAll("#visitTable tbody tr");
+        rows.forEach((tr) => tr.classList.remove("highlight"));
+        if (
+          highlightIndex !== null &&
+          highlightIndex >= 0 &&
+          highlightIndex < rows.length
+        ) {
+          const row = document.getElementById(`visit-row-${highlightIndex}`);
+          if (row) row.classList.add("highlight");
+        }
+      }
+
+      // Handle selection
       document
-        .getElementById("uploadForm")
+        .getElementById("repForm")
         .addEventListener("submit", function (e) {
           e.preventDefault();
+          const repId = document.getElementById("repSelect").value;
+          if (!repId) return alert("Please select a Rep ID");
 
-          const fileInput = document.getElementById("file");
-          const formData = new FormData();
-          formData.append("file", fileInput.files[0]);
-
-          fetch("/upload-gps", {
+          fetch("/process-rep", {
             method: "POST",
-            body: formData,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rep_id: repId }),
           })
-            .then((response) => response.json())
+            .then((res) => res.json())
             .then((data) => {
-              document.getElementById("response").innerHTML =
-                `<strong>Total Distance:</strong> ${data.total_distance_km} km<br>` +
-                // `<strong>Raw Points:</strong> ${data.raw_points_count}<br>` +
-                // `<strong>Filtered Points:</strong> ${data.filtered_points_count}<br>` +
-                // `<strong>Snapped Points:</strong> ${data.snapped_points_count}<br>` +
-                `<a href="${data.map_url}" target="_blank">🗺 View Route Map</a>`;
+              // Update map
+              const iframe = document.getElementById("mapFrame");
+              iframe.src = data.map_url;
+              iframe.style.display = "block";
 
-              if (data.shop_visits && data.shop_visits.length > 0) {
-                let visitHTML =
-                  "<h3>Shop Visit Summary</h3><table><tr><th>Shop</th><th>Check-in</th><th>Check-out</th><th>Duration (min)</th></tr>";
-                data.shop_visits.forEach((v) => {
-                  visitHTML += `<tr>
-              <td>${v.shop}</td>
-              <td>${new Date(v.check_in).toLocaleString()}</td>
-              <td>${new Date(v.check_out).toLocaleString()}</td>
-              <td>${v.duration_min}</td>
-            </tr>`;
-                });
-                visitHTML += "</table>";
-                document.getElementById("visits").innerHTML = visitHTML;
-              } else {
-                document.getElementById("visits").innerHTML =
-                  "<p>No shop visits detected.</p>";
-              }
+              // Update shop table
+              const tbody = document.querySelector("#visitTable tbody");
+              tbody.innerHTML = ""; // Clear previous
+              data.shop_visits.forEach((v, i) => {
+                const tr = document.createElement("tr");
+                tr.id = `visit-row-${i}`;
+                tr.innerHTML = `
+                  <td>${v.shop}</td>
+                  <td>${new Date(v.check_in).toLocaleTimeString()}</td>
+                  <td>${new Date(v.check_out).toLocaleTimeString()}</td>
+                  <td>${v.duration_min} min</td>
+                `;
+                tbody.appendChild(tr);
+              });
+
+              // Update total distance
+              const totalDistanceDiv = document.getElementById("totalDistance");
+              totalDistanceDiv.textContent = `Total Distance: ${Number(
+                data.total_distance_km
+              ).toFixed(3)} km`;
+
+              // Listen for animation updates from iframe
+              window.addEventListener("message", function (event) {
+                if (event.data && event.data.statusText !== undefined) {
+                  document.getElementById("statusText").textContent =
+                    event.data.statusText;
+                  updateTableHighlight(event.data.highlightIndex);
+                }
+              });
             })
-            .catch((error) => {
-              document.getElementById("response").textContent =
-                "Error: " + error;
+            .catch((err) => {
+              document.getElementById("statusText").textContent =
+                "Error: " + err;
+              document.getElementById("totalDistance").textContent =
+                "Total Distance: Error";
             });
         });
     </script>
