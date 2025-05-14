@@ -3,8 +3,12 @@ from geopy.distance import geodesic
 import os
 import time
 import polyline
+from dotenv import load_dotenv
 
-API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyACpYMHnmkd8DWxWS3KTJ70EeKIRYN2xHM')
+# Load .env file
+load_dotenv()
+
+API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 def get_road_distance(points):
     total_km = 0

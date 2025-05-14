@@ -2,8 +2,12 @@ import requests
 from geopy.distance import geodesic
 import os
 import time
+from dotenv import load_dotenv
 
-API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyACpYMHnmkd8DWxWS3KTJ70EeKIRYN2xHM')
+# Load .env file
+load_dotenv()
+
+API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 # Snap to Roads (max 100 per batch)
 def snap_to_nearest_road_filtered(points, max_snap_distance_m=15):
