@@ -43,7 +43,7 @@ def detect_shop_visits(time_points, shops, min_duration_min=1):
     return merge_close_visits(visits)
 
 def create_route_map(time_points, snapped_path, visits, route_coords=None, output_path='static/route_map.html'):
-    m = folium.Map(location=snapped_path[0], zoom_start=16)
+    m = folium.Map(location=snapped_path[0], zoom_start=10)
 
     if route_coords:
         folium.PolyLine(route_coords, color="blue", weight=4, opacity=0.6).add_to(m)
