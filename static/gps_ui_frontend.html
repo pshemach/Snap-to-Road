@@ -75,7 +75,7 @@
       select {
         width: 100%;
         appearance: none;
-        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0Проспать 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
         background-repeat: no-repeat;
         background-position: right 1rem center;
         background-size: 1em;
@@ -106,6 +106,46 @@
 
       button:active {
         transform: translateY(0);
+      }
+
+      button:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .process-all-btn {
+        background: var(--accent-color);
+      }
+
+      .process-all-btn:hover {
+        background: #c0392b;
+      }
+
+      .status-indicator {
+        padding: 10px;
+        border-radius: 6px;
+        margin: 10px 0;
+        text-align: center;
+        font-weight: 500;
+      }
+
+      .status-processing {
+        background: rgba(241, 196, 15, 0.2);
+        color: #f39c12;
+        border: 1px solid #f39c12;
+      }
+
+      .status-success {
+        background: rgba(46, 204, 113, 0.2);
+        color: #27ae60;
+        border: 1px solid #27ae60;
+      }
+
+      .status-error {
+        background: rgba(231, 76, 60, 0.2);
+        color: #e74c3c;
+        border: 1px solid #e74c3c;
       }
 
       table {
@@ -193,11 +233,30 @@
 
     <div id="infoPanel">
       <h2>Rep Route Analysis</h2>
+
+      <!-- Processing Status -->
+      <div
+        id="processingStatus"
+        class="status-indicator"
+        style="display: none"
+      ></div>
+
+      <!-- Process All Button -->
+      <button id="processAllBtn" class="process-all-btn">
+        Process All Reps
+      </button>
+
+      <!-- Clear Data Button -->
+      <button id="clearDataBtn" style="background: #95a5a6; margin-top: 10px">
+        Clear Processed Data
+      </button>
+
+      <!-- Rep Selection Form -->
       <form id="repForm">
         <select id="repSelect" name="rep_id">
           <option value="">-- Select Rep ID --</option>
         </select>
-        <button type="submit">Analyze</button>
+        <button type="submit" id="analyzeBtn" disabled>View Analysis</button>
       </form>
 
       <h3>Shop Visits</h3>
@@ -214,10 +273,14 @@
       </table>
 
       <div id="totalDistance">Total Distance: N/A</div>
-      <div id="statusText">Waiting for selection...</div>
+      <div id="statusText">
+        Please process all reps first, then select a rep to view analysis...
+      </div>
     </div>
 
     <script>
+      let isDataProcessed = false;
+
       // Load Rep IDs and Names
       fetch("/rep-ids")
         .then((res) => res.json())
@@ -229,6 +292,137 @@
             opt.textContent = rep.name; // Show rep name
             select.appendChild(opt);
           });
+        });
+
+      // Check processing status on page load
+      function checkProcessingStatus() {
+        fetch("/get-processing-status")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.is_processed) {
+              isDataProcessed = true;
+              document.getElementById("analyzeBtn").disabled = false;
+              document.getElementById("clearDataBtn").disabled = false;
+              document.getElementById(
+                "processingStatus"
+              ).textContent = `✓ Data processed (${data.processed_count}/${data.total_reps} reps)`;
+              document.getElementById("processingStatus").className =
+                "status-indicator status-success";
+              document.getElementById("processingStatus").style.display =
+                "block";
+              document.getElementById("statusText").textContent =
+                "Select a rep to view analysis...";
+            } else {
+              document.getElementById("analyzeBtn").disabled = true;
+              document.getElementById("clearDataBtn").disabled = true;
+              document.getElementById(
+                "processingStatus"
+              ).textContent = `No data processed yet. Click "Process All Reps" to start.`;
+              document.getElementById("processingStatus").className =
+                "status-indicator";
+              document.getElementById("processingStatus").style.display =
+                "block";
+            }
+          });
+      }
+
+      // Process All Reps
+      document
+        .getElementById("processAllBtn")
+        .addEventListener("click", function () {
+          const btn = this;
+          const statusDiv = document.getElementById("processingStatus");
+
+          btn.disabled = true;
+          btn.textContent = "Processing...";
+          statusDiv.textContent = "Processing all reps, please wait...";
+          statusDiv.className = "status-indicator status-processing";
+          statusDiv.style.display = "block";
+
+          fetch("/process-all-reps", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.error) {
+                throw new Error(data.error);
+              }
+
+              isDataProcessed = true;
+              document.getElementById("analyzeBtn").disabled = false;
+              document.getElementById("clearDataBtn").disabled = false;
+              btn.textContent = "Process All Reps";
+              btn.disabled = false;
+
+              statusDiv.textContent = `✓ ${data.message}`;
+              statusDiv.className = "status-indicator status-success";
+
+              document.getElementById("statusText").textContent =
+                "Select a rep to view analysis...";
+            })
+            .catch((err) => {
+              btn.textContent = "Process All Reps";
+              btn.disabled = false;
+              statusDiv.textContent = `Error: ${err.message}`;
+              statusDiv.className = "status-indicator status-error";
+            });
+        });
+
+      // Clear Processed Data
+      document
+        .getElementById("clearDataBtn")
+        .addEventListener("click", function () {
+          if (
+            !confirm(
+              "Are you sure you want to clear all processed data? This will require reprocessing all reps."
+            )
+          ) {
+            return;
+          }
+
+          const btn = this;
+          const statusDiv = document.getElementById("processingStatus");
+
+          btn.disabled = true;
+          btn.textContent = "Clearing...";
+          statusDiv.textContent = "Clearing processed data...";
+          statusDiv.className = "status-indicator status-processing";
+          statusDiv.style.display = "block";
+
+          fetch("/clear-processed-data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.error) {
+                throw new Error(data.error);
+              }
+
+              isDataProcessed = false;
+              document.getElementById("analyzeBtn").disabled = true;
+              btn.textContent = "Clear Processed Data";
+              btn.disabled = false;
+
+              // Clear the map and table
+              document.getElementById("mapFrame").style.display = "none";
+              document.querySelector("#visitTable tbody").innerHTML = "";
+              document.getElementById("totalDistance").textContent =
+                "Total Distance: N/A";
+              document.getElementById("statusText").textContent =
+                "Please process all reps first, then select a rep to view analysis...";
+
+              statusDiv.textContent =
+                "✓ All processed data cleared. Click 'Process All Reps' to start again.";
+              statusDiv.className = "status-indicator status-success";
+            })
+            .catch((err) => {
+              btn.textContent = "Clear Processed Data";
+              btn.disabled = false;
+              statusDiv.textContent = `Error: ${err.message}`;
+              statusDiv.className = "status-indicator status-error";
+            });
         });
 
       // Function to update table highlight
@@ -245,25 +439,25 @@
         }
       }
 
-      // Handle selection
+      // Handle rep selection
       document
-        .getElementById("repForm")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-          const repId = document.getElementById("repSelect").value;
-          if (!repId) return alert("Please select a Rep ID");
+        .getElementById("repSelect")
+        .addEventListener("change", function () {
+          const repId = this.value;
+          if (!repId || !isDataProcessed) return;
 
-          fetch("/process-rep", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rep_id: repId }),
-          })
+          // Show loading state
+          document.getElementById("statusText").textContent =
+            "Loading rep data and generating map...";
+          document.getElementById("mapFrame").style.display = "none";
+
+          // First, load saved data for the selected rep
+          fetch(`/get-processed-rep-data/${repId}`)
             .then((res) => res.json())
             .then((data) => {
-              // Update map
-              const iframe = document.getElementById("mapFrame");
-              iframe.src = data.map_url;
-              iframe.style.display = "block";
+              if (data.error) {
+                throw new Error(data.error);
+              }
 
               // Update shop table
               const tbody = document.querySelector("#visitTable tbody");
@@ -271,12 +465,17 @@
               data.shop_visits.forEach((v, i) => {
                 const tr = document.createElement("tr");
                 tr.id = `visit-row-${i}`;
+
+                // Parse datetime strings properly
+                const checkIn = new Date(v.check_in);
+                const checkOut = new Date(v.check_out);
+
                 tr.innerHTML = `
-                  <td>${v.shop}</td>
-                  <td>${new Date(v.check_in).toLocaleTimeString()}</td>
-                  <td>${new Date(v.check_out).toLocaleTimeString()}</td>
-                  <td>${v.duration_min} min</td>
-                `;
+                <td>${v.shop}</td>
+                <td>${checkIn.toLocaleTimeString()}</td>
+                <td>${checkOut.toLocaleTimeString()}</td>
+                <td>${v.duration_min} min</td>
+              `;
                 tbody.appendChild(tr);
               });
 
@@ -285,6 +484,23 @@
               totalDistanceDiv.textContent = `Total Distance: ${Number(
                 data.total_distance_km
               ).toFixed(3)} km`;
+
+              // Now generate the map dynamically
+              return fetch(`/generate-map/${repId}`);
+            })
+            .then((res) => res.json())
+            .then((mapData) => {
+              if (mapData.error) {
+                throw new Error(mapData.error);
+              }
+
+              // Update map with the newly generated map
+              const iframe = document.getElementById("mapFrame");
+              iframe.src = mapData.map_url;
+              iframe.style.display = "block";
+
+              document.getElementById("statusText").textContent =
+                "Analysis loaded from saved data and map generated";
 
               // Listen for animation updates from iframe
               window.addEventListener("message", function (event) {
@@ -297,11 +513,38 @@
             })
             .catch((err) => {
               document.getElementById("statusText").textContent =
-                "Error: " + err;
+                "Error: " + err.message;
               document.getElementById("totalDistance").textContent =
                 "Total Distance: Error";
             });
         });
+
+      // Handle form submission (now just for compatibility)
+      document
+        .getElementById("repForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const repId = document.getElementById("repSelect").value;
+          if (!repId) {
+            alert("Please select a Rep ID");
+            return;
+          }
+
+          if (!isDataProcessed) {
+            alert(
+              "Please process all reps first by clicking 'Process All Reps'"
+            );
+            return;
+          }
+
+          // Trigger the change event to load data
+          document
+            .getElementById("repSelect")
+            .dispatchEvent(new Event("change"));
+        });
+
+      // Check status on page load
+      checkProcessingStatus();
     </script>
   </body>
 </html>
